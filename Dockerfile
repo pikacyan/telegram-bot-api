@@ -1,10 +1,11 @@
-# Initialize dependencies before building: git submodule update --init --recursive
 FROM debian:bookworm-slim AS build
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
+        ca-certificates \
         cmake \
         g++ \
+        git \
         gperf \
         libssl-dev \
         make \
@@ -12,8 +13,11 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
+# Keep this commit in sync with the td submodule.
+RUN git init td \
+    && git -C td fetch --depth 1 https://github.com/tdlib/td.git bc9c263e2bfee06aaab41e82db51a103376030bc \
+    && git -C td checkout --detach FETCH_HEAD
 COPY CMakeLists.txt ./
-COPY td/ td/
 COPY telegram-bot-api/ telegram-bot-api/
 RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
     && cmake --build build --target install --parallel 2
